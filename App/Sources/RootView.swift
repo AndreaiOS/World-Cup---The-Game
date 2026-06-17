@@ -12,6 +12,9 @@ struct RootView: View {
             case .match:        MatchView(model: model)
             }
         }
-        .onAppear { LeaderboardService.shared.authenticate() }
+        .onAppear {
+            LeaderboardService.shared.authenticate()
+            AudioManager.shared.startMusic()
+        }
     }
 }

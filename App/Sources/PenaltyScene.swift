@@ -5,12 +5,14 @@ final class PenaltyScene: SKScene {
     private let ball = SKNode()
     private let keeper = SKNode()
     private let prompt = SKLabelNode(text: "SWIPE TO SHOOT")
+    private let aimGuide = SKShapeNode()
+    private let netNode = SKShapeNode()
     private lazy var geo = GoalGeometry(sceneSize: size)
 
     var opponentStrength: Int = 75
     var matchSeed: UInt64 = 1
-    /// Called once when the shootout is decided, with the final score.
-    var onComplete: ((Int, Int) -> Void)?
+    /// Called once when the shootout is decided: (playerScore, opponentScore, playerSaves).
+    var onComplete: ((Int, Int, Int) -> Void)?
     private var controller: ShootoutController!
     private var reported = false
     private lazy var swipes = SwipeReader(sceneSize: size)
@@ -35,6 +37,12 @@ final class PenaltyScene: SKScene {
         prompt.position = CGPoint(x: size.width / 2, y: size.height * 0.06)
         addChild(prompt)
         updatePrompt()
+
+        aimGuide.strokeColor = SKColor.white.withAlphaComponent(0.5)
+        aimGuide.lineWidth = 3
+        aimGuide.zPosition = 9
+        aimGuide.lineCap = .round
+        addChild(aimGuide)
     }
 
     // MARK: - Scenery
@@ -55,6 +63,22 @@ final class PenaltyScene: SKScene {
         spot.strokeColor = .clear
         spot.position = geo.penaltySpot
         addChild(spot)
+
+        // Crowd band above the goal.
+        let rows = 3, cols = 26
+        let top = geo.crossbarY
+        for r in 0..<rows {
+            for c in 0..<cols {
+                let dot = SKShapeNode(circleOfRadius: 3)
+                let hue = CGFloat((c * 7 + r * 13) % 100) / 100
+                dot.fillColor = SKColor(hue: hue, saturation: 0.5, brightness: 0.8, alpha: 1)
+                dot.strokeColor = .clear
+                dot.position = CGPoint(x: size.width * CGFloat(c) / CGFloat(cols - 1),
+                                       y: top + 18 + CGFloat(r) * 12)
+                dot.zPosition = -12
+                addChild(dot)
+            }
+        }
     }
 
     private func drawGoal() {
@@ -74,7 +98,7 @@ final class PenaltyScene: SKScene {
             let y = bottom + CGFloat(j) / CGFloat(rows) * (top - bottom)
             net.move(to: CGPoint(x: left, y: y)); net.addLine(to: CGPoint(x: right, y: y))
         }
-        let netNode = SKShapeNode(path: net)
+        netNode.path = net
         netNode.strokeColor = SKColor.white.withAlphaComponent(0.22)
         netNode.lineWidth = 1
         netNode.zPosition = -5
@@ -170,9 +194,16 @@ final class PenaltyScene: SKScene {
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let t = touches.first else { return }
         touchMid = t.location(in: self)
+        if controller.state().turn == .playerShoots, let start = touchStart {
+            let path = CGMutablePath()
+            path.move(to: start)
+            path.addLine(to: t.location(in: self))
+            aimGuide.path = path
+        }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        aimGuide.path = nil
         guard !busy, let start = touchStart, let mid = touchMid,
               let t = touches.first else { return }
         let end = t.location(in: self)
@@ -274,12 +305,21 @@ final class PenaltyScene: SKScene {
         let s = controller.state()
         run(.sequence([
             .wait(forDuration: 0.6),
-            .run { [weak self] in self?.onComplete?(s.playerScore, s.opponentScore) }
+            .run { [weak self] in
+                guard let self else { return }
+                self.onComplete?(s.playerScore, s.opponentScore, self.controller.playerSaves)
+            }
         ]))
     }
 
     private func flashOutcome(_ outcome: PenaltyOutcome) {
         AudioManager.shared.play(outcome == .goal ? .goal : outcome == .saved ? .save : .miss)
+        if outcome == .goal {
+            netNode.run(.sequence([
+                .scale(to: 1.06, duration: 0.08),
+                .scale(to: 1.0, duration: 0.18)
+            ]))
+        }
         let label = SKLabelNode(text: outcome == .goal ? "GOAL!"
                                 : outcome == .saved ? "SAVED!" : "MISS!")
         label.fontName = "AvenirNext-Heavy"

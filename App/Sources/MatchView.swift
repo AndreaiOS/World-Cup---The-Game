@@ -37,8 +37,8 @@ struct MatchView: View {
                 playerScore = state.playerScore
                 opponentScore = state.opponentScore
             }
-            scene.onComplete = { p, o in
-                model.recordMatch(playerScore: p, opponentScore: o)
+            scene.onComplete = { p, o, saves in
+                model.recordMatch(playerScore: p, opponentScore: o, saves: saves)
             }
         }
     }
