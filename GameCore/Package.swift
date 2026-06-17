@@ -8,10 +8,14 @@ let package = Package(
         .library(name: "GameCore", targets: ["GameCore"]),
     ],
     targets: [
-        .target(name: "GameCore"),
+        .target(
+            name: "GameCore",
+            resources: [.process("Data/Resources")]
+        ),
         .testTarget(
             name: "GameCoreTests",
-            dependencies: ["GameCore"]
+            dependencies: ["GameCore"],
+            resources: [.process("Fixtures")]
         ),
     ]
 )

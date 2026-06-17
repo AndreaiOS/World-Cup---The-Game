@@ -1,0 +1,5 @@
+[
+  { "id": "CAN", "name": "Canada", "flag": "🇨🇦", "strength": 70 },
+  { "id": "MEX", "name": "Mexico", "flag": "🇲🇽", "strength": 74 },
+  { "id": "USA", "name": "United States", "flag": "🇺🇸", "strength": 76 }
+]
