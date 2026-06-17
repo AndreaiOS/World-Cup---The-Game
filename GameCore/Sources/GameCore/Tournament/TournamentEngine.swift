@@ -47,4 +47,51 @@ public enum TournamentEngine {
         }
         return results
     }
+
+    /// Replay the whole tournament from the save and return the current view.
+    public static func snapshot(nations: [Nation], groups: [Group],
+                                save: TournamentSave) -> TournamentSnapshot {
+        let player = save.playerNationId
+        let byId = Dictionary(uniqueKeysWithValues: nations.map { ($0.id, $0) })
+        precondition(byId[player] != nil, "unknown nation \(player)")
+        let pGroup = playerGroup(in: groups, playerId: player)
+        let opponents = groupOpponents(group: pGroup, playerId: player)
+
+        // --- Group stage, still playing the player's three matches ---
+        if save.playerResults.count < 3 {
+            let standings = GroupTable.standings(nationIds: pGroup.nationIds,
+                                                 results: save.playerResults)
+            return TournamentSnapshot(
+                stage: .group, phase: .playing,
+                opponentId: opponents[save.playerResults.count],
+                playerGroupStandings: standings,
+                playerMatchesPlayed: save.playerResults.count)
+        }
+
+        // --- Group stage resolved: simulate the rest and check qualification ---
+        var gen = SeededGenerator(seed: save.seed)
+        let groupResults = allGroupResults(nations: byId, groups: groups, save: save, gen: &gen)
+        let groupStandings = GroupTable.standings(nationIds: pGroup.nationIds, results: groupResults)
+        let qualifiers = GroupTable.qualifiers(groups: groups, results: groupResults)
+
+        guard qualifiers.contains(where: { $0.nationId == player }) else {
+            return TournamentSnapshot(
+                stage: .group, phase: .eliminated, opponentId: nil,
+                playerGroupStandings: groupStandings,
+                playerMatchesPlayed: save.playerResults.count)
+        }
+
+        // --- Knockout (Task 4 replaces this placeholder) ---
+        return knockoutSnapshot(byId: byId, qualifiers: qualifiers, save: save,
+                                groupStandings: groupStandings, gen: &gen)
+    }
+
+    /// Placeholder replaced in Task 4.
+    static func knockoutSnapshot(byId: [String: Nation], qualifiers: [Qualifier],
+                                 save: TournamentSave, groupStandings: [GroupStanding],
+                                 gen: inout SeededGenerator) -> TournamentSnapshot {
+        TournamentSnapshot(stage: .roundOf32, phase: .playing, opponentId: nil,
+                           playerGroupStandings: groupStandings,
+                           playerMatchesPlayed: save.playerResults.count)
+    }
 }
