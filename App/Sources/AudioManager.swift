@@ -27,19 +27,26 @@ final class AudioManager {
         engine.connect(musicPlayer, to: engine.mainMixerNode, format: format)
     }
 
+    private static let musicVolume: Float = 0.3
+
     /// Start a soft looping arpeggio under the UI. Idempotent; respects mute.
+    /// The actual start happens inside `startIfNeeded()` so it also kicks in
+    /// the first time the engine successfully starts (e.g. on the first SFX),
+    /// not only at launch.
     func startMusic() {
         startIfNeeded()
-        guard engine.isRunning else { return }
-        musicPlayer.volume = isMuted ? 0 : 0.12
-        if !musicPlayer.isPlaying {
-            musicPlayer.scheduleBuffer(musicLoop(), at: nil, options: [.loops], completionHandler: nil)
-            musicPlayer.play()
-        }
+        startMusicLoop()
+    }
+
+    private func startMusicLoop() {
+        guard engine.isRunning, !musicPlayer.isPlaying else { return }
+        musicPlayer.volume = isMuted ? 0 : Self.musicVolume
+        musicPlayer.scheduleBuffer(musicLoop(), at: nil, options: [.loops], completionHandler: nil)
+        musicPlayer.play()
     }
 
     private func applyMusicVolume() {
-        musicPlayer.volume = isMuted ? 0 : 0.12
+        musicPlayer.volume = isMuted ? 0 : Self.musicVolume
     }
 
     /// One bar of a gentle major arpeggio (C–E–G–E … ) that loops seamlessly.
@@ -67,8 +74,10 @@ final class AudioManager {
         try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
         try? engine.start()
-        player.play()
         started = engine.isRunning
+        guard started else { return }
+        player.play()
+        startMusicLoop()
     }
 
     func play(_ sfx: SFX) {
