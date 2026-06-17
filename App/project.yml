@@ -1,0 +1,34 @@
+name: WorldFootball
+options:
+  bundleIdPrefix: co.socialsprint
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+packages:
+  GameCore:
+    path: ../GameCore
+targets:
+  WorldFootball:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    dependencies:
+      - package: GameCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: co.socialsprint.worldfootball2026
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+schemes:
+  WorldFootball:
+    build:
+      targets:
+        WorldFootball: all
+    run:
+      config: Debug
