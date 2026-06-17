@@ -30,4 +30,35 @@ final class ShootoutControllerTests: XCTestCase {
         XCTAssertEqual(c.state().turn, .playerShoots)
         XCTAssertEqual(c.state().opponentScore, outcome == .goal ? 1 : 0)
     }
+
+    func testWinnerIsNilUntilOver() {
+        let c = ShootoutController(opponentStrength: 5, seed: 2)
+        _ = c.playerShoot(sureGoal)
+        XCTAssertNil(c.state().winnerIsPlayer)
+        XCTAssertFalse(c.state().isOver)
+    }
+
+    func testCenteredDiveSavesWeakOpponentAndCountsSave() {
+        let c = ShootoutController(opponentStrength: 5, seed: 4)
+        _ = c.playerShoot(sureGoal)                 // -> playerKeeps
+        let outcome = c.playerDive(KeeperDive(x: 0))
+        XCTAssertEqual(outcome, .saved)
+        XCTAssertEqual(c.playerSaves, 1)
+        XCTAssertEqual(c.state().opponentScore, 0)
+    }
+
+    func testPlayerWinsFiveNilPlaythrough() {
+        let c = ShootoutController(opponentStrength: 5, seed: 9)
+        for _ in 0..<5 {
+            XCTAssertFalse(c.state().isOver)
+            _ = c.playerShoot(sureGoal)             // always goal
+            _ = c.playerDive(KeeperDive(x: 0))      // always save
+        }
+        let s = c.state()
+        XCTAssertTrue(s.isOver)
+        XCTAssertEqual(s.playerScore, 5)
+        XCTAssertEqual(s.opponentScore, 0)
+        XCTAssertEqual(s.winnerIsPlayer, true)
+        XCTAssertEqual(c.playerSaves, 5)
+    }
 }
