@@ -4,6 +4,7 @@ import GameCore
 final class PenaltyScene: SKScene {
     private let ball = SKShapeNode(circleOfRadius: 13)
     private let keeper = SKShapeNode(rectOf: CGSize(width: 46, height: 64), cornerRadius: 8)
+    private let prompt = SKLabelNode(text: "SWIPE TO SHOOT")
     private lazy var geo = GoalGeometry(sceneSize: size)
 
     private let controller = ShootoutController(opponentStrength: 75,
@@ -22,6 +23,13 @@ final class PenaltyScene: SKScene {
         drawGoal()
         drawKeeper()
         drawBall()
+
+        prompt.fontName = "AvenirNext-Bold"
+        prompt.fontSize = 18
+        prompt.fontColor = SKColor.white.withAlphaComponent(0.85)
+        prompt.position = CGPoint(x: size.width / 2, y: size.height * 0.07)
+        addChild(prompt)
+        updatePrompt()
     }
 
     private func drawGoal() {
@@ -51,13 +59,21 @@ final class PenaltyScene: SKScene {
         addChild(ball)
     }
 
+    private func updatePrompt() {
+        let s = controller.state()
+        if s.isOver {
+            prompt.text = ""
+        } else {
+            prompt.text = s.turn == .playerShoots ? "SWIPE TO SHOOT" : "SWIPE TO DIVE"
+        }
+    }
+
     // MARK: - Swipe capture
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard !busy, controller.state().turn == .playerShoots,
-              let t = touches.first else { return }
+        guard !busy, !controller.state().isOver, let t = touches.first else { return }
         touchStart = t.location(in: self)
-        touchMid = touchStart
+        touchMid = t.location(in: self)
         touchStartTime = t.timestamp
     }
 
@@ -68,12 +84,16 @@ final class PenaltyScene: SKScene {
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !busy, let start = touchStart, let mid = touchMid,
-              let t = touches.first, controller.state().turn == .playerShoots else { return }
+              let t = touches.first else { return }
         let end = t.location(in: self)
         let duration = t.timestamp - touchStartTime
         let s = swipes.read(start: start, end: end, control: mid, duration: duration)
-        let shot = SwipeMapper.shot(dx: s.dx, dy: s.dy, speed: s.speed, curve: s.curve)
-        shoot(shot)
+        switch controller.state().turn {
+        case .playerShoots:
+            shoot(SwipeMapper.shot(dx: s.dx, dy: s.dy, speed: s.speed, curve: s.curve))
+        case .playerKeeps:
+            dive(SwipeMapper.dive(dx: s.dx))
+        }
         touchStart = nil
     }
 
@@ -109,6 +129,46 @@ final class PenaltyScene: SKScene {
                 guard let self else { return }
                 self.keeper.run(.move(to: self.geo.keeperPoint(x: 0), duration: 0.2))
                 self.busy = false
+                self.updatePrompt()
+            }
+        ]))
+    }
+
+    // MARK: - Defending
+
+    private func dive(_ keeperDive: KeeperDive) {
+        busy = true
+        let outcome = controller.playerDive(keeperDive)
+
+        keeper.run(.move(to: geo.keeperPoint(x: keeperDive.x), duration: 0.25))
+
+        // The opponent ball flies to a corner; saved => toward the keeper,
+        // goal => away from it. (Cosmetic; the rule already decided it.)
+        let targetX = outcome == .saved ? keeperDive.x
+                    : (keeperDive.x >= 0 ? -0.6 : 0.6)
+        let target = geo.point(aimX: targetX, aimY: 0.5)
+        let oppBall = SKShapeNode(circleOfRadius: 13)
+        oppBall.fillColor = .white
+        oppBall.strokeColor = .black
+        oppBall.position = geo.penaltySpot
+        addChild(oppBall)
+        oppBall.run(.sequence([
+            .move(to: target, duration: 0.35),
+            .removeFromParent(),
+            .run { [weak self] in self?.finishKeep(outcome) }
+        ]))
+    }
+
+    private func finishKeep(_ outcome: PenaltyOutcome) {
+        flashOutcome(outcome == .saved ? .saved : .goal)
+        onStateChange?(controller.state())
+        run(.sequence([
+            .wait(forDuration: 0.8),
+            .run { [weak self] in
+                guard let self else { return }
+                self.keeper.run(.move(to: self.geo.keeperPoint(x: 0), duration: 0.2))
+                self.busy = false
+                self.updatePrompt()
             }
         ]))
     }
