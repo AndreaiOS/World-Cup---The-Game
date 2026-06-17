@@ -86,11 +86,59 @@ public enum TournamentEngine {
                                 groupStandings: groupStandings, gen: &gen)
     }
 
-    /// Placeholder replaced in Task 4.
+    /// Walk the knockout bracket using the player's results for their own
+    /// matches and simulating the others, returning the current view.
     static func knockoutSnapshot(byId: [String: Nation], qualifiers: [Qualifier],
                                  save: TournamentSave, groupStandings: [GroupStanding],
                                  gen: inout SeededGenerator) -> TournamentSnapshot {
-        TournamentSnapshot(stage: .roundOf32, phase: .playing, opponentId: nil,
+        let player = save.playerNationId
+        let stages: [Stage] = [.roundOf32, .roundOf16, .quarterFinal, .semiFinal, .final]
+        let knockoutResults = Array(save.playerResults.dropFirst(3))
+
+        var matches = KnockoutBracket.buildRoundOf32(from: qualifiers)
+        var kIndex = 0
+
+        for stage in stages {
+            guard let playerMatch = matches.first(where: {
+                $0.homeId == player || $0.awayId == player
+            }) else { break }
+
+            if kIndex < knockoutResults.count {
+                let r = knockoutResults[kIndex]
+                kIndex += 1
+                if r.winnerId != player {
+                    return snapshot(stage: stage, phase: .eliminated, opponentId: nil,
+                                    groupStandings: groupStandings, save: save)
+                }
+                if matches.count == 1 {                       // won the final
+                    return snapshot(stage: .final, phase: .champion, opponentId: nil,
+                                    groupStandings: groupStandings, save: save)
+                }
+                let roundResults: [MatchResult] = matches.map { m in
+                    if m.homeId == player || m.awayId == player {
+                        return r
+                    }
+                    return MatchSimulator.simulate(home: byId[m.homeId]!,
+                                                   away: byId[m.awayId]!, using: &gen)
+                }
+                matches = KnockoutBracket.nextRound(from: matches, results: roundResults)
+            } else {
+                let opponentId = playerMatch.homeId == player ? playerMatch.awayId
+                                                              : playerMatch.homeId
+                return snapshot(stage: stage, phase: .playing, opponentId: opponentId,
+                                groupStandings: groupStandings, save: save)
+            }
+        }
+
+        // Player won the final on the last stage.
+        return snapshot(stage: .final, phase: .champion, opponentId: nil,
+                        groupStandings: groupStandings, save: save)
+    }
+
+    private static func snapshot(stage: Stage, phase: TournamentPhase, opponentId: String?,
+                                 groupStandings: [GroupStanding],
+                                 save: TournamentSave) -> TournamentSnapshot {
+        TournamentSnapshot(stage: stage, phase: phase, opponentId: opponentId,
                            playerGroupStandings: groupStandings,
                            playerMatchesPlayed: save.playerResults.count)
     }
