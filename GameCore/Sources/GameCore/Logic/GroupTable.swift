@@ -38,4 +38,36 @@ public enum GroupTable {
             return lhs.nationId < rhs.nationId
         }
     }
+
+    /// Top two of every group plus the eight best third-placed nations.
+    /// Returns 32 qualifiers (24 + 8). Best thirds ranked by points, then
+    /// goal difference, then goals for, then id.
+    public static func qualifiers(groups: [Group],
+                                  results: [MatchResult]) -> [Qualifier] {
+        var advancing: [Qualifier] = []
+        var thirds: [Qualifier] = []
+
+        for group in groups {
+            let table = standings(nationIds: group.nationIds, results: results)
+            for (index, standing) in table.enumerated() {
+                let q = Qualifier(nationId: standing.nationId, groupId: group.id,
+                                  position: index + 1, points: standing.points,
+                                  goalDifference: standing.goalDifference,
+                                  goalsFor: standing.goalsFor)
+                if index < 2 { advancing.append(q) }
+                else if index == 2 { thirds.append(q) }
+            }
+        }
+
+        let bestThirds = thirds.sorted { lhs, rhs in
+            if lhs.points != rhs.points { return lhs.points > rhs.points }
+            if lhs.goalDifference != rhs.goalDifference {
+                return lhs.goalDifference > rhs.goalDifference
+            }
+            if lhs.goalsFor != rhs.goalsFor { return lhs.goalsFor > rhs.goalsFor }
+            return lhs.nationId < rhs.nationId
+        }.prefix(8)
+
+        return advancing + bestThirds
+    }
 }
