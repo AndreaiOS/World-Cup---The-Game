@@ -13,7 +13,12 @@ final class LeaderboardService {
         GKLocalPlayer.local.authenticateHandler = { _, _ in
             // Intentionally ignore the presenting view controller and errors:
             // if sign-in is needed or unavailable we stay offline rather than
-            // interrupting the game.
+            // interrupting the game. Show the floating access point only when
+            // actually signed in (inert on a bare simulator build).
+            if GKLocalPlayer.local.isAuthenticated {
+                GKAccessPoint.shared.location = .topLeading
+                GKAccessPoint.shared.isActive = true
+            }
         }
     }
 

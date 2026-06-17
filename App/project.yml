@@ -15,6 +15,10 @@ targets:
       - Sources
     dependencies:
       - package: GameCore
+    entitlements:
+      path: WorldFootball.entitlements
+      properties:
+        com.apple.developer.game-center: true
     settings:
       base:
         GENERATE_INFOPLIST_FILE: "YES"
