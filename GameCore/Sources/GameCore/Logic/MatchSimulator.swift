@@ -33,7 +33,9 @@ public enum MatchSimulator {
         }
 
         if homeScore == awayScore {
-            // Vanishingly unlikely: decide deterministically, never a tie.
+            // Vanishingly unlikely (50 sudden-death rounds level): decide
+            // deterministically. Equal strength resolves toward home — a
+            // deliberate, consistent bias matching MatchResult.winnerId's `>=`.
             if home.strength >= away.strength { homeScore += 1 } else { awayScore += 1 }
         }
 

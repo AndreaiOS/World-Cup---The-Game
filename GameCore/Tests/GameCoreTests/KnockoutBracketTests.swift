@@ -43,6 +43,23 @@ final class KnockoutBracketTests: XCTestCase {
         ])
     }
 
+    func testPositionOutranksPointsInSeeding() {
+        // A position-3 team with huge points must still seed BELOW every
+        // position-1 and position-2 team (position is the primary key).
+        var qs: [Qualifier] = []
+        for i in 0..<31 {
+            qs.append(Qualifier(nationId: "P\(i)", groupId: "G", position: (i % 2) + 1,
+                                points: 10, goalDifference: 0, goalsFor: 0))
+        }
+        // One position-3 team with the highest points of all.
+        qs.append(Qualifier(nationId: "THIRD", groupId: "G", position: 3,
+                            points: 999, goalDifference: 0, goalsFor: 0))
+        let r32 = KnockoutBracket.buildRoundOf32(from: qs)
+        // THIRD is the weakest seed -> it is the away side of the first match
+        // (seed 1 vs seed 32).
+        XCTAssertEqual(r32.first?.awayId, "THIRD")
+    }
+
     func testFullBracketReducesToOneWinner() {
         var matches = KnockoutBracket.buildRoundOf32(from: makeQualifiers())
         var rng = SeededGenerator(seed: 1)

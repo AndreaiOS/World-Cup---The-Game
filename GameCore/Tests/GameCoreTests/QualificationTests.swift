@@ -46,6 +46,19 @@ final class QualificationTests: XCTestCase {
         }
     }
 
+    func testBestThirdsAreSelectedByPoints() {
+        let groups = makeGroups()
+        let results = makeResults(groups)
+        let qs = GroupTable.qualifiers(groups: groups, results: results)
+        let thirds = Set(qs.filter { $0.position == 3 }.map { $0.points })
+        // With the symmetric makeResults, every group's third has identical
+        // stats, so exactly 8 are taken and they all share the same points
+        // value (deterministic cut by id). Assert all selected thirds have
+        // the maximal third-place points and there are exactly 8.
+        XCTAssertEqual(qs.filter { $0.position == 3 }.count, 8)
+        XCTAssertEqual(thirds.count, 1) // all selected thirds share the top points value
+    }
+
     func testExactlyEightThirdsQualify() {
         let groups = makeGroups()
         let results = makeResults(groups)

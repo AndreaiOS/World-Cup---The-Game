@@ -30,6 +30,10 @@ public enum KnockoutBracket {
     /// `results[i]` must correspond to `matches[i]`.
     public static func nextRound(from matches: [BracketMatch],
                                  results: [MatchResult]) -> [BracketMatch] {
+        precondition(matches.count == results.count,
+                     "each match needs exactly one result")
+        precondition(matches.count.isMultiple(of: 2),
+                     "a knockout round must have an even number of matches")
         let winners = results.map { $0.winnerId }
         var next: [BracketMatch] = []
         var i = 0
