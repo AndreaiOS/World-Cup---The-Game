@@ -194,13 +194,15 @@ final class PenaltyScene: SKScene {
         let outcome = controller.playerShoot(shot)
         let target = geo.point(aimX: shot.aimX, aimY: shot.aimY)
 
-        let keeperX: Double
+        // The keeper leaps to the ball on a save (so the save is visible), and
+        // dives the wrong way on a goal (so the ball clearly beats him).
+        let keeperDest: CGPoint
         switch outcome {
-        case .saved: keeperX = shot.aimX
-        case .goal:  keeperX = -max(0.3, abs(shot.aimX)) * (shot.aimX >= 0 ? 1 : -1)
-        case .miss:  keeperX = 0
+        case .saved: keeperDest = target
+        case .goal:  keeperDest = geo.keeperPoint(x: shot.aimX >= 0 ? -0.7 : 0.7)
+        case .miss:  keeperDest = geo.keeperPoint(x: 0)
         }
-        keeper.run(.move(to: geo.keeperPoint(x: keeperX), duration: 0.3))
+        keeper.run(.move(to: keeperDest, duration: 0.3))
 
         ball.run(.sequence([
             .group([.move(to: target, duration: 0.35), .scale(to: 0.7, duration: 0.35)]),
@@ -231,11 +233,13 @@ final class PenaltyScene: SKScene {
         busy = true
         let outcome = controller.playerDive(keeperDive)
 
-        keeper.run(.move(to: geo.keeperPoint(x: keeperDive.x), duration: 0.25))
-
+        // On a save the keeper meets the ball; on a goal the ball goes to the
+        // opposite side while the keeper dives where the player chose.
         let targetX = outcome == .saved ? keeperDive.x
                     : (keeperDive.x >= 0 ? -0.6 : 0.6)
         let target = geo.point(aimX: targetX, aimY: 0.5)
+        let keeperDest = outcome == .saved ? target : geo.keeperPoint(x: keeperDive.x)
+        keeper.run(.move(to: keeperDest, duration: 0.25))
         let oppBall = makeBall()
         oppBall.position = geo.penaltySpot
         oppBall.zPosition = 8
