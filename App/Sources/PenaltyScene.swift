@@ -7,8 +7,12 @@ final class PenaltyScene: SKScene {
     private let prompt = SKLabelNode(text: "SWIPE TO SHOOT")
     private lazy var geo = GoalGeometry(sceneSize: size)
 
-    private let controller = ShootoutController(opponentStrength: 75,
-                                                seed: UInt64.random(in: 1...999_999))
+    var opponentStrength: Int = 75
+    var matchSeed: UInt64 = 1
+    /// Called once when the shootout is decided, with the final score.
+    var onComplete: ((Int, Int) -> Void)?
+    private var controller: ShootoutController!
+    private var reported = false
     private lazy var swipes = SwipeReader(sceneSize: size)
     private var touchStart: CGPoint?
     private var touchMid: CGPoint?
@@ -18,6 +22,7 @@ final class PenaltyScene: SKScene {
     var onStateChange: ((ShootoutController.State) -> Void)?
 
     override func didMove(to view: SKView) {
+        controller = ShootoutController(opponentStrength: opponentStrength, seed: matchSeed)
         geo = GoalGeometry(sceneSize: size)
         drawPitch()
         drawGoal()
@@ -215,6 +220,7 @@ final class PenaltyScene: SKScene {
                 self.keeper.run(.move(to: self.geo.keeperPoint(x: 0), duration: 0.2))
                 self.busy = false
                 self.updatePrompt()
+                self.reportIfFinished()
             }
         ]))
     }
@@ -251,7 +257,18 @@ final class PenaltyScene: SKScene {
                 self.keeper.run(.move(to: self.geo.keeperPoint(x: 0), duration: 0.2))
                 self.busy = false
                 self.updatePrompt()
+                self.reportIfFinished()
             }
+        ]))
+    }
+
+    private func reportIfFinished() {
+        guard !reported, controller.state().isOver else { return }
+        reported = true
+        let s = controller.state()
+        run(.sequence([
+            .wait(forDuration: 0.6),
+            .run { [weak self] in self?.onComplete?(s.playerScore, s.opponentScore) }
         ]))
     }
 
