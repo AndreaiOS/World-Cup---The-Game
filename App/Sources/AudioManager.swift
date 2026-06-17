@@ -8,17 +8,58 @@ final class AudioManager {
 
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
+    private let musicPlayer = AVAudioPlayerNode()
     private let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
     private var started = false
 
     var isMuted: Bool {
-        didSet { UserDefaults.standard.set(isMuted, forKey: "audio.muted") }
+        didSet {
+            UserDefaults.standard.set(isMuted, forKey: "audio.muted")
+            applyMusicVolume()
+        }
     }
 
     private init() {
         isMuted = UserDefaults.standard.bool(forKey: "audio.muted")
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
+        engine.attach(musicPlayer)
+        engine.connect(musicPlayer, to: engine.mainMixerNode, format: format)
+    }
+
+    /// Start a soft looping arpeggio under the UI. Idempotent; respects mute.
+    func startMusic() {
+        startIfNeeded()
+        guard engine.isRunning else { return }
+        musicPlayer.volume = isMuted ? 0 : 0.12
+        if !musicPlayer.isPlaying {
+            musicPlayer.scheduleBuffer(musicLoop(), at: nil, options: [.loops], completionHandler: nil)
+            musicPlayer.play()
+        }
+    }
+
+    private func applyMusicVolume() {
+        musicPlayer.volume = isMuted ? 0 : 0.12
+    }
+
+    /// One bar of a gentle major arpeggio (C–E–G–E … ) that loops seamlessly.
+    private func musicLoop() -> AVAudioPCMBuffer {
+        let sr = 44_100.0
+        let noteDur = 0.5
+        let notes = [261.63, 329.63, 392.0, 329.63, 293.66, 349.23, 440.0, 349.23]
+        let total = noteDur * Double(notes.count)
+        let count = AVAudioFrameCount(total * sr)
+        let buf = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: count)!
+        buf.frameLength = count
+        let ch = buf.floatChannelData![0]
+        for i in 0..<Int(count) {
+            let t = Double(i) / sr
+            let idx = min(Int(t / noteDur), notes.count - 1)
+            let nt = t - Double(idx) * noteDur
+            let env = sin(.pi * nt / noteDur)            // soft swell per note
+            ch[i] = Float(sin(2 * .pi * notes[idx] * t) * env * 0.5)
+        }
+        return buf
     }
 
     private func startIfNeeded() {
