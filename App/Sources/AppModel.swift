@@ -60,7 +60,23 @@ final class AppModel: ObservableObject {
                                            homeScore: playerScore, awayScore: opponentScore))
         save = s
         persist()
+        submitScoreIfFinished()
         screen = .hub
+    }
+
+    var totalScore: Int {
+        guard let save else { return 0 }
+        let goals = save.playerResults.reduce(0) { $0 + $1.homeScore }
+        let wins = save.playerResults.filter { $0.winnerId == save.playerNationId }.count
+        let won = snapshot?.phase == .champion
+        let stats = TournamentStats(goalsScored: goals, saves: 0,
+                                    matchesWon: wins, wonTournament: won)
+        return ScoreCalculator.totalScore(stats)
+    }
+
+    private func submitScoreIfFinished() {
+        guard let snap = snapshot, snap.phase != .playing else { return }
+        LeaderboardService.shared.submit(score: totalScore)
     }
 
     func abandonToMenu() { screen = .menu }

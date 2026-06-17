@@ -103,6 +103,8 @@ struct TournamentHubView: View {
             if let you = model.nation(model.save?.playerNationId) {
                 Text("\(you.flag) \(you.name)").font(.title3.bold()).foregroundColor(.white)
             }
+            Text("Score: \(model.totalScore)")
+                .font(.title2.bold()).foregroundColor(.white.opacity(0.9))
             Spacer()
             Button("NEW TOURNAMENT") { model.resetAndChooseNation() }
                 .font(.title3.bold())

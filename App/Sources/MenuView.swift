@@ -2,9 +2,10 @@ import SwiftUI
 
 struct MenuView: View {
     @ObservedObject var model: AppModel
+    @State private var muted = AudioManager.shared.isMuted
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topTrailing) {
             LinearGradient(colors: [.green, .teal], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
             VStack(spacing: 28) {
@@ -26,6 +27,16 @@ struct MenuView: View {
                 Spacer().frame(height: 40)
             }
             .padding(.horizontal, 32)
+
+            Button {
+                muted.toggle()
+                AudioManager.shared.isMuted = muted
+            } label: {
+                Image(systemName: muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .padding(16)
+            }
         }
     }
 }
