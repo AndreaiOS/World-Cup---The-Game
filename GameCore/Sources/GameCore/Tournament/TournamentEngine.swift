@@ -111,7 +111,7 @@ public enum TournamentEngine {
                                     groupStandings: groupStandings, save: save)
                 }
                 if matches.count == 1 {                       // won the final
-                    return snapshot(stage: .final, phase: .champion, opponentId: nil,
+                    return snapshot(stage: stage, phase: .champion, opponentId: nil,
                                     groupStandings: groupStandings, save: save)
                 }
                 let roundResults: [MatchResult] = matches.map { m in
@@ -130,9 +130,9 @@ public enum TournamentEngine {
             }
         }
 
-        // Player won the final on the last stage.
-        return snapshot(stage: .final, phase: .champion, opponentId: nil,
-                        groupStandings: groupStandings, save: save)
+        // Unreachable for valid inputs: a won final returns inside the loop, and
+        // the player is always present in each round while advancing.
+        preconditionFailure("knockout walk did not terminate")
     }
 
     private static func snapshot(stage: Stage, phase: TournamentPhase, opponentId: String?,

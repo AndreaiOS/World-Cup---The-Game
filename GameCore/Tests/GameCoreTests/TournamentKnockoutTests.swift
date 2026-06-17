@@ -43,4 +43,30 @@ final class TournamentKnockoutTests: XCTestCase {
         XCTAssertEqual(snap.phase, .champion)
         XCTAssertEqual(snap.stage, .final)
     }
+
+    func testLosingInQuarterFinalEliminatesAtThatStage() throws {
+        let (nations, groups) = try data()
+        var results = threeGroupWins(groups)
+        results.append(MatchResult(homeId: "BRA", awayId: "OPP", homeScore: 5, awayScore: 4)) // R32 win
+        results.append(MatchResult(homeId: "BRA", awayId: "OPP", homeScore: 5, awayScore: 4)) // R16 win
+        results.append(MatchResult(homeId: "BRA", awayId: "OPP", homeScore: 2, awayScore: 4)) // QF loss
+        let save = TournamentSave(playerNationId: "BRA", seed: 1, playerResults: results)
+        let snap = TournamentEngine.snapshot(nations: nations, groups: groups, save: save)
+        XCTAssertEqual(snap.phase, .eliminated)
+        XCTAssertEqual(snap.stage, .quarterFinal)
+    }
+
+    func testOpponentStableMidBracket() throws {
+        let (nations, groups) = try data()
+        var results = threeGroupWins(groups)
+        results.append(MatchResult(homeId: "BRA", awayId: "OPP", homeScore: 5, awayScore: 4)) // R32 win
+        results.append(MatchResult(homeId: "BRA", awayId: "OPP", homeScore: 5, awayScore: 4)) // R16 win
+        let save = TournamentSave(playerNationId: "BRA", seed: 1, playerResults: results)
+        let a = TournamentEngine.snapshot(nations: nations, groups: groups, save: save)
+        let b = TournamentEngine.snapshot(nations: nations, groups: groups, save: save)
+        XCTAssertEqual(a.stage, .quarterFinal)
+        XCTAssertEqual(a.phase, .playing)
+        XCTAssertNotNil(a.opponentId)
+        XCTAssertEqual(a.opponentId, b.opponentId)
+    }
 }
