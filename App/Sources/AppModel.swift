@@ -54,10 +54,11 @@ final class AppModel: ObservableObject {
         return save.seed &+ UInt64(save.playerResults.count) &+ 1
     }
 
-    func recordMatch(playerScore: Int, opponentScore: Int) {
+    func recordMatch(playerScore: Int, opponentScore: Int, saves: Int) {
         guard var s = save, let oppId = snapshot?.opponentId else { return }
         s.playerResults.append(MatchResult(homeId: s.playerNationId, awayId: oppId,
                                            homeScore: playerScore, awayScore: opponentScore))
+        s.playerSaves.append(saves)
         save = s
         persist()
         submitScoreIfFinished()
@@ -67,9 +68,10 @@ final class AppModel: ObservableObject {
     var totalScore: Int {
         guard let save else { return 0 }
         let goals = save.playerResults.reduce(0) { $0 + $1.homeScore }
+        let saves = save.playerSaves.reduce(0, +)
         let wins = save.playerResults.filter { $0.winnerId == save.playerNationId }.count
         let won = snapshot?.phase == .champion
-        let stats = TournamentStats(goalsScored: goals, saves: 0,
+        let stats = TournamentStats(goalsScored: goals, saves: saves,
                                     matchesWon: wins, wonTournament: won)
         return ScoreCalculator.totalScore(stats)
     }

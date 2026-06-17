@@ -9,8 +9,8 @@ final class PenaltyScene: SKScene {
 
     var opponentStrength: Int = 75
     var matchSeed: UInt64 = 1
-    /// Called once when the shootout is decided, with the final score.
-    var onComplete: ((Int, Int) -> Void)?
+    /// Called once when the shootout is decided: (playerScore, opponentScore, playerSaves).
+    var onComplete: ((Int, Int, Int) -> Void)?
     private var controller: ShootoutController!
     private var reported = false
     private lazy var swipes = SwipeReader(sceneSize: size)
@@ -274,7 +274,10 @@ final class PenaltyScene: SKScene {
         let s = controller.state()
         run(.sequence([
             .wait(forDuration: 0.6),
-            .run { [weak self] in self?.onComplete?(s.playerScore, s.opponentScore) }
+            .run { [weak self] in
+                guard let self else { return }
+                self.onComplete?(s.playerScore, s.opponentScore, self.controller.playerSaves)
+            }
         ]))
     }
 
