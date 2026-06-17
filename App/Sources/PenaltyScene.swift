@@ -7,8 +7,12 @@ final class PenaltyScene: SKScene {
     private let prompt = SKLabelNode(text: "SWIPE TO SHOOT")
     private lazy var geo = GoalGeometry(sceneSize: size)
 
-    private let controller = ShootoutController(opponentStrength: 75,
-                                                seed: UInt64.random(in: 1...999_999))
+    var opponentStrength: Int = 75
+    var matchSeed: UInt64 = 1
+    /// Called once when the shootout is decided, with the final score.
+    var onComplete: ((Int, Int) -> Void)?
+    private var controller: ShootoutController!
+    private var reported = false
     private lazy var swipes = SwipeReader(sceneSize: size)
     private var touchStart: CGPoint?
     private var touchMid: CGPoint?
@@ -18,6 +22,7 @@ final class PenaltyScene: SKScene {
     var onStateChange: ((ShootoutController.State) -> Void)?
 
     override func didMove(to view: SKView) {
+        controller = ShootoutController(opponentStrength: opponentStrength, seed: matchSeed)
         geo = GoalGeometry(sceneSize: size)
         drawPitch()
         drawGoal()
@@ -189,13 +194,15 @@ final class PenaltyScene: SKScene {
         let outcome = controller.playerShoot(shot)
         let target = geo.point(aimX: shot.aimX, aimY: shot.aimY)
 
-        let keeperX: Double
+        // The keeper leaps to the ball on a save (so the save is visible), and
+        // dives the wrong way on a goal (so the ball clearly beats him).
+        let keeperDest: CGPoint
         switch outcome {
-        case .saved: keeperX = shot.aimX
-        case .goal:  keeperX = -max(0.3, abs(shot.aimX)) * (shot.aimX >= 0 ? 1 : -1)
-        case .miss:  keeperX = 0
+        case .saved: keeperDest = target
+        case .goal:  keeperDest = geo.keeperPoint(x: shot.aimX >= 0 ? -0.7 : 0.7)
+        case .miss:  keeperDest = geo.keeperPoint(x: 0)
         }
-        keeper.run(.move(to: geo.keeperPoint(x: keeperX), duration: 0.3))
+        keeper.run(.move(to: keeperDest, duration: 0.3))
 
         ball.run(.sequence([
             .group([.move(to: target, duration: 0.35), .scale(to: 0.7, duration: 0.35)]),
@@ -215,6 +222,7 @@ final class PenaltyScene: SKScene {
                 self.keeper.run(.move(to: self.geo.keeperPoint(x: 0), duration: 0.2))
                 self.busy = false
                 self.updatePrompt()
+                self.reportIfFinished()
             }
         ]))
     }
@@ -225,11 +233,13 @@ final class PenaltyScene: SKScene {
         busy = true
         let outcome = controller.playerDive(keeperDive)
 
-        keeper.run(.move(to: geo.keeperPoint(x: keeperDive.x), duration: 0.25))
-
+        // On a save the keeper meets the ball; on a goal the ball goes to the
+        // opposite side while the keeper dives where the player chose.
         let targetX = outcome == .saved ? keeperDive.x
                     : (keeperDive.x >= 0 ? -0.6 : 0.6)
         let target = geo.point(aimX: targetX, aimY: 0.5)
+        let keeperDest = outcome == .saved ? target : geo.keeperPoint(x: keeperDive.x)
+        keeper.run(.move(to: keeperDest, duration: 0.25))
         let oppBall = makeBall()
         oppBall.position = geo.penaltySpot
         oppBall.zPosition = 8
@@ -251,7 +261,18 @@ final class PenaltyScene: SKScene {
                 self.keeper.run(.move(to: self.geo.keeperPoint(x: 0), duration: 0.2))
                 self.busy = false
                 self.updatePrompt()
+                self.reportIfFinished()
             }
+        ]))
+    }
+
+    private func reportIfFinished() {
+        guard !reported, controller.state().isOver else { return }
+        reported = true
+        let s = controller.state()
+        run(.sequence([
+            .wait(forDuration: 0.6),
+            .run { [weak self] in self?.onComplete?(s.playerScore, s.opponentScore) }
         ]))
     }
 
