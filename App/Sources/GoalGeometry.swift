@@ -6,12 +6,12 @@ import CoreGraphics
 struct GoalGeometry {
     let sceneSize: CGSize
 
-    var goalWidth: CGFloat { sceneSize.width * 0.7 }
-    var goalHeight: CGFloat { sceneSize.height * 0.28 }
+    var goalWidth: CGFloat { sceneSize.width * 0.78 }
+    var goalHeight: CGFloat { sceneSize.height * 0.27 }
     var goalCenterX: CGFloat { sceneSize.width / 2 }
-    var goalLineY: CGFloat { sceneSize.height * 0.62 }      // bottom of the goal mouth
+    var goalLineY: CGFloat { sceneSize.height * 0.50 }      // bottom of the goal mouth
     var crossbarY: CGFloat { goalLineY + goalHeight }
-    var penaltySpot: CGPoint { CGPoint(x: sceneSize.width / 2, y: sceneSize.height * 0.16) }
+    var penaltySpot: CGPoint { CGPoint(x: sceneSize.width / 2, y: sceneSize.height * 0.17) }
 
     /// Where in the scene a shot aimed at (aimX, aimY) lands.
     func point(aimX: Double, aimY: Double) -> CGPoint {

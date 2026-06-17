@@ -11,8 +11,8 @@ struct GameView: View {
     @State private var scene: PenaltyScene = makeScene()
 
     private static func makeScene() -> PenaltyScene {
-        let scene = PenaltyScene(size: CGSize(width: 390, height: 600))
-        scene.scaleMode = .resizeFill
+        let scene = PenaltyScene(size: CGSize(width: 390, height: 844))
+        scene.scaleMode = .aspectFill
         return scene
     }
 
@@ -31,10 +31,11 @@ struct GameView: View {
                 .id(sceneID)
                 .ignoresSafeArea()
             Text("\(playerScore) – \(opponentScore)")
-                .font(.system(size: 34, weight: .heavy, design: .rounded))
+                .font(.system(size: 30, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
-                .padding(.top, 8)
-                .shadow(radius: 3)
+                .padding(.horizontal, 24).padding(.vertical, 8)
+                .background(.black.opacity(0.35), in: Capsule())
+                .padding(.top, 12)
 
             if isOver {
                 VStack(spacing: 16) {

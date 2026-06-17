@@ -3,6 +3,10 @@ import CoreGraphics
 
 /// Converts a raw swipe in scene points into normalized engine inputs.
 /// Scene coordinates have y up, so an upward flick toward the goal yields dy > 0.
+///
+/// Tuning favors landing inside the frame: a full swipe maps aim to ~0.85 of a
+/// post (not the post itself) and ~0.8 of the bar height, power is capped, and
+/// curve is gentle — so a confident swipe stays on target.
 struct SwipeReader {
     let sceneSize: CGSize
 
@@ -11,23 +15,23 @@ struct SwipeReader {
         let w = Double(sceneSize.width)
         let h = Double(sceneSize.height)
 
-        // A horizontal flick of ~35% of width = full aim left/right.
-        let dx = Double(end.x - start.x) / (w * 0.35)
-        // An upward flick of ~45% of height = full aim to the crossbar.
-        let dy = Double(end.y - start.y) / (h * 0.45)
+        // Horizontal: a ~50%-width flick reaches the cap; capped to 0.85 (inside post).
+        let dx = (Double(end.x - start.x) / (w * 0.50)) * 0.85
+        // Vertical: a ~50%-height flick reaches the cap; capped to 0.8 (below the bar).
+        let dy = (Double(end.y - start.y) / (h * 0.50)) * 0.80
 
         let dist = Double(hypot(end.x - start.x, end.y - start.y))
         let pxPerSec = dist / max(duration, 0.016)
-        // ~2000 px/s reads as full power.
-        let speed = pxPerSec / 2000.0
+        // ~2600 px/s reads as full power; capped so spread stays modest.
+        let speed = min(pxPerSec / 2600.0, 0.8)
 
         // Curve = sideways offset of the control (mid) point from the straight
-        // line start->end, normalized by half the swipe length.
+        // line start->end, normalized gently so accidental bends stay small.
         let mx = Double(end.x - start.x), my = Double(end.y - start.y)
         let len = max(hypot(mx, my), 1)
         let cx = Double(control.x - start.x), cy = Double(control.y - start.y)
-        let cross = (mx * cy - my * cx) / len     // signed perpendicular distance
-        let curve = cross / (len * 0.5)
+        let cross = (mx * cy - my * cx) / len
+        let curve = cross / (len * 1.5)
 
         return (dx, dy, speed, curve)
     }
