@@ -1,0 +1,14 @@
+[
+  { "id": "A", "nationIds": ["MEX", "KOR", "CZE", "RSA"] },
+  { "id": "B", "nationIds": ["CAN", "BIH", "QAT", "SUI"] },
+  { "id": "C", "nationIds": ["BRA", "MAR", "HAI", "SCO"] },
+  { "id": "D", "nationIds": ["USA", "AUS", "TUR", "PAR"] },
+  { "id": "E", "nationIds": ["GER", "CIV", "ECU", "CUW"] },
+  { "id": "F", "nationIds": ["NED", "JPN", "SWE", "TUN"] },
+  { "id": "G", "nationIds": ["BEL", "EGY", "IRN", "NZL"] },
+  { "id": "H", "nationIds": ["ESP", "KSA", "URU", "CPV"] },
+  { "id": "I", "nationIds": ["FRA", "SEN", "IRQ", "NOR"] },
+  { "id": "J", "nationIds": ["ARG", "ALG", "AUT", "JOR"] },
+  { "id": "K", "nationIds": ["POR", "COL", "COD", "UZB"] },
+  { "id": "L", "nationIds": ["ENG", "CRO", "GHA", "PAN"] }
+]

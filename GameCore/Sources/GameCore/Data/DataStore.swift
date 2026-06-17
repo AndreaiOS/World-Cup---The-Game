@@ -21,4 +21,14 @@ public enum DataStore {
         let data = try Data(contentsOf: url)
         return try decodeNations(from: data)
     }
+
+    /// Load the 12 groups shipped with the package bundle.
+    public static func loadGroups() throws -> [Group] {
+        guard let url = Bundle.module.url(forResource: "groups",
+                                          withExtension: "json") else {
+            throw DataError.resourceNotFound("groups.json")
+        }
+        let data = try Data(contentsOf: url)
+        return try JSONDecoder().decode([Group].self, from: data)
+    }
 }
