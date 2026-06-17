@@ -191,6 +191,7 @@ final class PenaltyScene: SKScene {
 
     private func shoot(_ shot: Shot) {
         busy = true
+        AudioManager.shared.play(.kick)
         let outcome = controller.playerShoot(shot)
         let target = geo.point(aimX: shot.aimX, aimY: shot.aimY)
 
@@ -231,6 +232,7 @@ final class PenaltyScene: SKScene {
 
     private func dive(_ keeperDive: KeeperDive) {
         busy = true
+        AudioManager.shared.play(.kick)
         let outcome = controller.playerDive(keeperDive)
 
         // On a save the keeper meets the ball; on a goal the ball goes to the
@@ -277,6 +279,7 @@ final class PenaltyScene: SKScene {
     }
 
     private func flashOutcome(_ outcome: PenaltyOutcome) {
+        AudioManager.shared.play(outcome == .goal ? .goal : outcome == .saved ? .save : .miss)
         let label = SKLabelNode(text: outcome == .goal ? "GOAL!"
                                 : outcome == .saved ? "SAVED!" : "MISS!")
         label.fontName = "AvenirNext-Heavy"
